@@ -65,7 +65,7 @@ module main_v2(
 //----------------------------------------------------------------------
 // PERIPHERAL ADDRESS SPACE
 //----------------------------------------------------------------------    
-    parameter FIRMWARE_VERSION = 16'd2050;
+    parameter FIRMWARE_VERSION = 16'd2051;
     parameter FIRMWARE_VERSION_MAJOR = FIRMWARE_VERSION[15:8];
     parameter FIRMWARE_VERSION_MINOR = FIRMWARE_VERSION[ 7:0];
 
