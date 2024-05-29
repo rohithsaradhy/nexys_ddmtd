@@ -6,7 +6,7 @@ create_clock -period 5.000 -name CLK_200 -waveform {0.000 2.500} [get_ports CLK_
 
 
 #create_clock -period 25.000 -name CLK_P -waveform {0.000 12.500} -add [get_ports CLK_P]
-create_clock -period 5.000 -name CLK_P -waveform {0.000 2.5000} -add [get_ports CLK_P]
+create_clock -period 4.000 -name CLK_P -waveform {0.000 2.000} -add [get_ports CLK_P]
 
 #set_input_delay -clock [get_clocks CLK_P] -add_delay 6.25 [get_ports {Q1A_P Q1B_P Q2A_P Q2B_P}]
 
@@ -16,6 +16,7 @@ create_clock -period 5.000 -name CLK_P -waveform {0.000 2.5000} -add [get_ports 
 
 
 set_input_delay -clock [get_clocks spi_sck] -clock_fall 12.500 [get_ports spi_mosi]
+
 
 
 
