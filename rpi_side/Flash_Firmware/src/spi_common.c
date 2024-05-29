@@ -177,6 +177,7 @@ int write_toFiles(FILE* fp1,FILE* fp2,  void* virtual_address, int byte_count)
           {
               // printf("%u,%u \n ", (uint)(val2>>31 & 0x1),(uint)(val2 & 0x7fffffff));
               // if(val2_prev - val2_val > (0x7fffffff>>1)) cycles2= cycles2 + 1; // if previous value is greater by 1/2 of 0x7fffffff
+              if(val2_val < val2_prev) cycles2= cycles2 + 1;
               val2_disp =  (uint64_t)val2_val + (cycles2)*2147483648;
               fprintf(fp2,"%u,",(uint)(val2>>31 & 0x1));
               fprintf(fp2,"%"PRIu64" \n",val2_disp);
