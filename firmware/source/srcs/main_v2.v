@@ -131,15 +131,19 @@ module main_v2(
             
 
     
-    sync_ddr sync_Q1A(.clk(clk_ref),.D(Q1A_temp),.Q(Q1A),.Q2(Q1An));
-    sync_ddr sync_Q2A(.clk(clk_ref),.D(Q2A_temp),.Q(Q2A),.Q2(Q2An));
-    sync_ddr sync_Q1B(.clk(clk_ref),.D(Q1B_temp),.Q(Q1B),.Q2(Q1Bn));
-    sync_ddr sync_Q2B(.clk(clk_ref),.D(Q2B_temp),.Q(Q2B),.Q2(Q2Bn));
+    // sync_ddr sync_Q1A(.clk(clk_ref),.D(Q1A_temp),.Q(Q1A),.Q2(Q1An));
+    // sync_ddr sync_Q2A(.clk(clk_ref),.D(Q2A_temp),.Q(Q2A),.Q2(Q2An));
+    // sync_ddr sync_Q1B(.clk(clk_ref),.D(Q1B_temp),.Q(Q1B),.Q2(Q1Bn));
+    // sync_ddr sync_Q2B(.clk(clk_ref),.D(Q2B_temp),.Q(Q2B),.Q2(Q2Bn));
 
 
+    SYNC sync_Q1A(.clk(clk_ref),.I(Q1A_temp),.O(Q1A),.reset(0));
+    SYNC sync_Q2A(.clk(clk_ref),.I(Q2A_temp),.O(Q2A),.reset(0));
+    SYNC sync_Q1B(.clk(clk_ref),.I(Q1B_temp),.O(Q1B),.reset(0));
+    SYNC sync_Q2B(.clk(clk_ref),.I(Q2B_temp),.O(Q2B),.reset(0));
 
 
-
+     
 
 
 // ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  == 
@@ -414,235 +418,32 @@ module main_v2(
 
 
     assign tx_byte =   TDATA;
-    //Legacy Logic
-    // assign tx_byte =    (mem1_active)?TDATA:
-    //                 (mem_full)?{6'b0,full_1,full_2}:
-    //                 (mem_afull)?{6'b0,prog_full_1,prog_full_2}:
-    //                 (firmware_addr_major)?FIRMWARE_VERSION_MAJOR: //Else send in the firmware version...
-    //                 (firmware_addr_minor)?FIRMWARE_VERSION_MINOR: //Else send in the firmware version...
-    //                 addr_byte;
 
+
+
+// ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  == 
+// Metastability Glitch Cleaner
+// ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  == 
+
+
+metaClean #(parameter WIDTH = 2000)(
+    input clk,
+    input beat_signal,
+    output beat_metaClean_p
+);
 
 
 // ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  == 
 // Sampling Logic for the beat clocks from the DDMTD...
 // ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  == 
-    //Connections to the sampling logic: reference --> (* ASYNC_REG = "TRUE" *) 
+    //Connections to the sampling logic: 
     wire   sampling_logic_clock;
     wire   ddmtd1_beat_clock;
     wire   ddmtd2_beat_clock;
 
     assign sampling_logic_clock = clk_ref; // Clock that is used to sample...
-
-
-    wire Q1A_buffed,Q1B_buffed;
-    BUF ddmtd1_beat_buff (.I(Q1A),.O(Q1A_buffed));
-    BUF ddmtd2_beat_buff (.I(Q1B),.O(Q1B_buffed));
-    assign ddmtd1_beat_clock    = Q1A_buffed;
-    assign ddmtd2_beat_clock    = Q1B_buffed;
-
-
-
-    // assign sampling_logic_clock = clk; // Clock that is used to sample...
-    // assign ddmtd1_beat_clock    = beat_0_q1;
-    // assign ddmtd2_beat_clock    = beat_1_q1;
-    // assign sampling_logic_clock = clk_200; // Clock that is used to sample...
-    // assign ddmtd1_beat_clock    = beat_0_q1; //Fake Clock
-    // assign ddmtd2_beat_clock    = beat_1_q1; //Fake Clock
-
-
-
-    // Fake beat clocks used for debugging...
-    reg beat_0_q1=0;
-    reg beat_1_q1=0;
-    integer counter_clkbeat=0;
-    integer dummy_counter =0;
-    reg odd=0;
-    always @(posedge sampling_logic_clock)
-    begin
-        if (m_reset)
-        begin
-            counter_clkbeat <=0;
-            dummy_counter <=0;
-        end
-        else
-            dummy_counter <= dummy_counter +1;
-        if(counter_clkbeat > 50000)
-        begin
-            beat_0_q1<=~beat_0_q1;
-            beat_1_q1<=~beat_1_q1;
-            counter_clkbeat <=0;
-        end
-        else
-        begin
-            counter_clkbeat<=counter_clkbeat+1;
-        end
-    end
-
-    
-
-
-
-
-
-
-
-
-    
-    //Legacy for reference
-    // wire ddmtd_beatclk1,ddmtd_beatclk2;
-    // BUF beatBuf2 (.I(Q1B),.O(ddmtd_beatclk2));
-    // wire sync_beat1;
-    // wire sync_beat2;
-    // SYNC SYNC1(
-    // .I(ddmtd_beatclk1),
-    // .O(sync_beat1),
-    // .clk(clk_ref),
-    // .reset(m_reset)
-    // );
-    // SYNC SYNC2(
-    // .I(ddmtd_beatclk2),
-    // .O(sync_beat2),
-    // .clk(clk_ref),
-    // .reset(m_reset)
-    // );
-
-
-
-    // wire enable_sampling_logic_synced;
-    // SYNC en_sample_logic(.I(enable_sampling_logic),.O(enable_sampling_logic_synced),clk(clk_ref));
-    // wire clk_buffed;
-    // BUF clkBuf1 (.I(sampling_logic_clock),.O(clk_buffed));
-    // wire ddmtd1_beat_clock_buff;
-    // BUF ddmtd1clkBuf1 (.I(ddmtd1_beat_clock),.O(ddmtd1_beat_clock_buff));
-    // wire ddmtd2_beat_clock_buff;
-    // BUF ddmtd2clkBuf1 (.I(ddmtd2_beat_clock),.O(ddmtd2_beat_clock_buff));
-
-
-    wire rd_clk_buff;
-    BUF readclkBuf1 (.I(clk),.O(rd_clk_buff));
-    wire read_en_buff;
-    BUF read_enBuf1 (.I(read_en),.O(read_en_buff));
-
-
-
-
-
-
-    wire m_reset_synced;
-    wire start_acq_synced;
-
-    SYNC SYNC_start_acq(
-        .O(start_acq_synced),
-        .I(start_acq),
-        .clk(sampling_logic_clock),
-        .reset(0)
-    );
-
-    SYNC SYNC_mreset(
-        .O(m_reset_synced),
-        .I(m_reset),
-        .clk(sampling_logic_clock),
-        .reset(0)
-    );
-
-
-
-    // wire triggered_posEdge;
-    // pTrigger pTrigger_1
-    // (
-    //     .I(ddmtd1_beat_clock),
-    //     .O(triggered_posEdge),
-    //     .clk(~sampling_logic_clock),
-    //     .reset(m_reset_synced)
-    // );
-
-
-
-    //Adding addional logic to trigger only at the posedge of ddmtd1_beat_clock...
-    integer ptrigger_counter = 0;
-    reg start_acq_ptrigger = 0;
-    reg previous_beat_edge = 0;
-    always@(posedge sampling_logic_clock)
-    begin
-        if (m_reset_synced)// Instantly reset  when reset or startAcq stops
-        begin
-            ptrigger_counter <=0;
-        end
-        else 
-        begin
-            if ((~ddmtd1_beat_clock)) // add up if stable
-                ptrigger_counter <= ptrigger_counter +1;
-            else // if it becomes unstable, reset the counter
-                ptrigger_counter <=0;
-
-            if ((ptrigger_counter > 500)) // stable for 500 clocks
-                start_acq_ptrigger <= start_acq_synced;
-        end
-    end
-
-
-
-
-
-
-
-
-
-    // reg [31:0] external_counter,external_counter2;
-
-    // always @(posedge sampling_logic_clock ) begin
-    //     if (~start_acq_ptrigger) 
-    //         external_counter<=0;
-    //     else
-    //         external_counter <= external_counter +1;
-    // end
-
-    wire [31:0] external_counter;
-    binary_counter bc1(
-    .Q(external_counter),
-    .CLK(sampling_logic_clock),
-    .CE(start_acq),
-    .SCLR(~start_acq_ptrigger | m_reset)
-    );
-
-    // always @(posedge sampling_logic_clock ) begin
-    //     if (~start_acq_ptrigger | m_reset_synced) 
-    //     external_counter2<=0;
-    //     else
-    //     external_counter2 <= external_counter2 +1;
-    // end
-
-    // binary_counter bc1(
-    // .Q(external_counter1),
-    // .CLK(sampling_logic_clock),
-    // .CE(start_acq),
-    // .SCLR(~start_acq_ptrigger | m_reset)
-    // );
-
-    // binary_counter bc2(
-    // .Q(external_counter2),
-    // .CLK(sampling_logic_clock),
-    // .CE(start_acq),
-    // .SCLR(~start_acq_ptrigger | m_reset)
-    // );
-
-
-    
-
-
-
-
-
-    wire ddmtd1_beat_clock_synced;
-    wire [31:0]tdata1_i;
-    wire full_1_i; //syncing
-    SYNC SYNC1(
-        .O(ddmtd1_beat_clock_synced),
-        .I(ddmtd1_beat_clock),
-        .clk(sampling_logic_clock),
-        .reset(m_reset)
-    );
+    assign ddmtd1_beat_clock    = Q1A;
+    assign ddmtd2_beat_clock    = Q1B;
 
 
     DDMTD_Sampler
@@ -650,105 +451,34 @@ module main_v2(
     DDMTD1(
         // Inputs for the sampling logic
         .WR_CLK(sampling_logic_clock),
-        .BEAT_CLK(ddmtd1_beat_clock_synced),
-        .en_SAMPLING_LOGIC(start_acq_ptrigger), //Active High
-        // .en_SAMPLING_LOGIC(1), //Active High
-        .EXTERNAL_COUNTER(external_counter),
+        .BEAT_CLK(ddmtd1_beat_clock),
+        .en_SAMPLING_LOGIC(start_acq), //Active High
         .RST(m_reset),
         //Inputs for readout
-        .RD_CLK(rd_clk_buff),
+        .RD_CLK(clk),
         .R_TDATA(tdata1),  
-        .READ_EN(read_en_buff),
-        //  .PROG_FULL(prog_full_1),
-        //  .PROG_EMPTY(TREADY),
-        // .EMPTY(),
-        .FULL(full_1_i),
-        .R_LOGIC_EN(1),
+        .READ_EN(read_en),
+        .FULL(full_1),
         .WRITE_COUNT(write_count_fifo1),
         .READ_COUNT(read_count_fifo1)
     );
 
-    //tdata temperory
-    // always @(posedge clk)
-    // begin
-    //     tdata1 <= tdata1_i;
-
-    // end
-
-
-    wire full_1_ii;
-    SYNC SYNC_full_1(
-        .O(full_1_ii),
-        .I(full_1_i),
-        .clk(sampling_logic_clock),
-        .reset(0)
-    );
-    SYNC SYNC_full_11(
-        .O(full_1),
-        .I(full_1_ii),
-        .clk(clk),
-        .reset(0)
-    );
-
-
-
-
-
-    wire ddmtd2_beat_clock_synced;
-    wire [31:0]tdata2_i;
-    wire full_2_i;
-    SYNC SYNC2(
-        .O(ddmtd2_beat_clock_synced),
-        .I(ddmtd2_beat_clock),
-        .clk(sampling_logic_clock),
-        .reset(m_reset)
-    );
     DDMTD_Sampler
     #(.DATA_WIDTH(32))
     DDMTD2(
         // Inputs for the sampling logic
         .WR_CLK(sampling_logic_clock),
-        .BEAT_CLK(ddmtd2_beat_clock_synced),
-        .en_SAMPLING_LOGIC(start_acq_ptrigger), //Active High
-        // .en_SAMPLING_LOGIC(1), //Active High
-        .EXTERNAL_COUNTER(external_counter),
+        .BEAT_CLK(ddmtd2_beat_clock),
+        .en_SAMPLING_LOGIC(start_acq), //Active High
         .RST(m_reset),
         //Inputs for readout
-        .RD_CLK(rd_clk_buff),
+        .RD_CLK(clk),
         .R_TDATA(tdata2),  
-        .READ_EN(read_en_buff),
-        //  .PROG_FULL(prog_full_1),
-        //  .PROG_EMPTY(TREADY),
-        // .EMPTY(),
-        .FULL(full_2_i),
-        .R_LOGIC_EN(1)
-        // .WRITE_COUNT(write_count_fifo2),
-        // .READ_COUNT(read_count_fifo2)
+        .READ_EN(read_en),
+        .FULL(full_2),
+        .WRITE_COUNT(write_count_fifo2),
+        .READ_COUNT(read_count_fifo2)
     );
-
-    //tdata temperory
-    // always @(posedge clk)
-    // begin
-    //     tdata2 <= tdata2_i;
-    // end
-
-    
-    wire full_2_ii;
-    SYNC SYNC_full_2(
-        .O(full_2_ii),
-        .I(full_2_i),
-        .clk(sampling_logic_clock),
-        .reset(0)
-    );
-    SYNC SYNC_full_22(
-        .O(full_2),
-        .I(full_22_ii),
-        .clk(clk),
-        .reset(0)
-    );
-
-
-
 
 
 
@@ -848,4 +578,24 @@ module main_v2(
 // ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  == 
 // END OF MODULE
 // ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==   
+endmodule
+
+
+module metaClean #(parameter WIDTH = 2000)(
+    input clk,
+    input beat_signal,
+    output beat_metaClean_p
+);
+wire clk;
+wire beat_signal;
+reg [WIDTH+1:0] beat_lsfr;
+wire allzero;
+reg beat_metaClean_p = 0;
+always @(posedge clk) beat_lsfr <= {beat_lsfr[WIDTH+1:1], beat_signal};
+assign allzero = ~|beat_lsfr[WIDTH:1];
+always@(posedge clk) 
+begin
+    if ((allzero) & (beat_lsfr[0] == 1) ) beat_metaClean_p <= 1;
+    if ((allzero) & (beat_lsfr[WIDTH+1] == 1) ) beat_metaClean_p <= 0;
+end
 endmodule
