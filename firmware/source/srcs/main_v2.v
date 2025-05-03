@@ -424,65 +424,72 @@ module main_v2(
 // ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  == 
 // Metastability Glitch Cleaner
 // ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  == 
+//Connections to the sampling logic: 
+wire   sampling_logic_clock;
+wire   ddmtd1_beat_clock_p;
+wire   ddmtd1_beat_clock_n;
+
+wire   ddmtd2_beat_clock_p;
+wire   ddmtd2_beat_clock_n;
+
+wire ddmtd1_beat_clock,ddmtd2_beat_clock;
+assign ddmtd1_beat_clock    = Q1A;
+assign ddmtd2_beat_clock    = Q1B;
+assign sampling_logic_clock = clk_ref; // Clock that is used to sample...
+
+metaClean (sampling_logic_clock,Q1A,ddmtd1_beat_clock_p,ddmtd1_beat_clock_n);
+metaClean (sampling_logic_clock,Q1B,ddmtd2_beat_clock_p,ddmtd2_beat_clock_n);
+
+wire ddmtd1_beat_clock_p_s;
+SYNC sync_beat1p(.clk(sampling_logic_clock),.I(ddmtd1_beat_clock_p),.O(ddmtd1_beat_clock_p_s),.reset(0));
+wire ddmtd2_beat_clock_p_s;
+SYNC sync_beat2p(.clk(sampling_logic_clock),.I(ddmtd2_beat_clock_p),.O(ddmtd2_beat_clock_p_s),.reset(0));
+wire ddmtd1_beat_clock_n_s;
+SYNC sync_beat1n(.clk(sampling_logic_clock),.I(ddmtd1_beat_clock_n),.O(ddmtd1_beat_clock_n_s),.reset(0));
+wire ddmtd2_beat_clock_n_s;
+SYNC sync_beat2n(.clk(sampling_logic_clock),.I(ddmtd2_beat_clock_n),.O(ddmtd2_beat_clock_n_s),.reset(0));
 
 
-metaClean #(parameter WIDTH = 2000)(
-    input clk,
-    input beat_signal,
-    output beat_metaClean_p
+wire pulse_p,pulse_n;
+assign pulse_p = (ddmtd1_beat_clock_p_s^ddmtd2_beat_clock_p_s);
+assign pulse_n = (ddmtd1_beat_clock_n_s^ddmtd2_beat_clock_n_s);
+
+
+
+
+DDMTD_Sampler
+#(.DATA_WIDTH(32))
+DDMTD1(
+    // Inputs for the sampling logic
+    .WR_CLK(sampling_logic_clock),
+    .BEAT_CLK(pulse_p),
+    .en_SAMPLING_LOGIC(start_acq), //Active High
+    .RST(m_reset),
+    //Inputs for readout
+    .RD_CLK(clk),
+    .R_TDATA(tdata1),  
+    .READ_EN(read_en),
+    .FULL(full_1),
+    .WRITE_COUNT(write_count_fifo1),
+    .READ_COUNT(read_count_fifo1)
 );
 
-
-// ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  == 
-// Sampling Logic for the beat clocks from the DDMTD...
-// ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  == 
-    //Connections to the sampling logic: 
-    wire   sampling_logic_clock;
-    wire   ddmtd1_beat_clock;
-    wire   ddmtd2_beat_clock;
-
-    assign sampling_logic_clock = clk_ref; // Clock that is used to sample...
-    assign ddmtd1_beat_clock    = Q1A;
-    assign ddmtd2_beat_clock    = Q1B;
-
-
-    DDMTD_Sampler
-    #(.DATA_WIDTH(32))
-    DDMTD1(
-        // Inputs for the sampling logic
-        .WR_CLK(sampling_logic_clock),
-        .BEAT_CLK(ddmtd1_beat_clock),
-        .en_SAMPLING_LOGIC(start_acq), //Active High
-        .RST(m_reset),
-        //Inputs for readout
-        .RD_CLK(clk),
-        .R_TDATA(tdata1),  
-        .READ_EN(read_en),
-        .FULL(full_1),
-        .WRITE_COUNT(write_count_fifo1),
-        .READ_COUNT(read_count_fifo1)
-    );
-
-    DDMTD_Sampler
-    #(.DATA_WIDTH(32))
-    DDMTD2(
-        // Inputs for the sampling logic
-        .WR_CLK(sampling_logic_clock),
-        .BEAT_CLK(ddmtd2_beat_clock),
-        .en_SAMPLING_LOGIC(start_acq), //Active High
-        .RST(m_reset),
-        //Inputs for readout
-        .RD_CLK(clk),
-        .R_TDATA(tdata2),  
-        .READ_EN(read_en),
-        .FULL(full_2),
-        .WRITE_COUNT(write_count_fifo2),
-        .READ_COUNT(read_count_fifo2)
-    );
-
-
-
-
+DDMTD_Sampler
+#(.DATA_WIDTH(32))
+DDMTD2(
+    // Inputs for the sampling logic
+    .WR_CLK(sampling_logic_clock),
+    .BEAT_CLK(pulse_n),
+    .en_SAMPLING_LOGIC(start_acq), //Active High
+    .RST(m_reset),
+    //Inputs for readout
+    .RD_CLK(clk),
+    .R_TDATA(tdata2),  
+    .READ_EN(read_en),
+    .FULL(full_2),
+    .WRITE_COUNT(write_count_fifo2),
+    .READ_COUNT(read_count_fifo2)
+);
 
 // ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  ==  == 
 // LED BLINKERS FOR STATUS REPORT
@@ -581,21 +588,53 @@ metaClean #(parameter WIDTH = 2000)(
 endmodule
 
 
-module metaClean #(parameter WIDTH = 2000)(
+module metaClean #(parameter WIDTH = 1000)(
     input clk,
     input beat_signal,
-    output beat_metaClean_p
+    output beat_metaClean,
+    output beat_meatClean_n
 );
-wire clk;
-wire beat_signal;
-reg [WIDTH+1:0] beat_lsfr;
-wire allzero;
-reg beat_metaClean_p = 0;
-always @(posedge clk) beat_lsfr <= {beat_lsfr[WIDTH+1:1], beat_signal};
-assign allzero = ~|beat_lsfr[WIDTH:1];
-always@(posedge clk) 
+
+reg [15:0] counter_zero;
+reg [15:0] counter_one;
+wire beat_clk;
+SYNC sync_beat_clk(.clk(clk),.I(beat_signal),.O(beat_clk),.reset(0));
+reg beat_metaClean=0;
+reg beat_meatClean_n=0;
+always @(posedge clk)
 begin
-    if ((allzero) & (beat_lsfr[0] == 1) ) beat_metaClean_p <= 1;
-    if ((allzero) & (beat_lsfr[WIDTH+1] == 1) ) beat_metaClean_p <= 0;
+    if (beat_clk == 0) counter_zero <= counter_zero + 1;
+    else counter_zero <= 0;
+    if (counter_zero > WIDTH) 
+    begin
+        beat_metaClean <= 0;
+        counter_zero <= 0;
+    end
+
+    if (beat_clk == 1) counter_one <= counter_one + 1;
+    else counter_one <= 0;
+
+    if (counter_one > WIDTH) 
+    begin
+        beat_metaClean <= 1;
+        counter_one <= 0;
+    end
+
+    if (beat_metaClean==0 & beat_clk==1) beat_meatClean_n <=1;
+    if (beat_metaClean==1 & beat_clk==0) beat_meatClean_n <=0;
+
 end
+
+// wire clk;
+// wire beat_signal;
+// reg [WIDTH+1:0] beat_lsfr;
+// wire allzero;
+// reg beat_metaClean_p = 0;
+// always @(posedge clk) beat_lsfr <= {beat_lsfr[WIDTH+1:1], beat_signal};
+// assign allzero = ~|beat_lsfr[WIDTH:1];
+// always@(posedge clk) 
+// begin
+//     if ((allzero) & (beat_lsfr[0] == 1) ) beat_metaClean_p <= 1;
+//     if ((allzero) & (beat_lsfr[WIDTH+1] == 1) ) beat_metaClean_p <= 0;
+// end
 endmodule

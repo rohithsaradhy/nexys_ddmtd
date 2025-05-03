@@ -45,23 +45,23 @@ module DDMTD_Sampler
 
 // SYNCING INPUTS & OUTPUTS to domain clocks
 wire beat_clk;
-SYNC beat_clk(.clk(WR_CLK),.I(BEAT_CLK),.O(beat_clk),.reset(0));
+SYNC sync_beat_clk(.clk(WR_CLK),.I(BEAT_CLK),.O(beat_clk),.reset(0));
 wire rst;
-SYNC beat_clk(.clk(WR_CLK),.I(RST),.O(rst),.reset(0));
+SYNC sync_rst(.clk(WR_CLK),.I(RST),.O(rst),.reset(0));
 wire en_sampling_logic;
-SYNC beat_clk(.clk(WR_CLK),.I(en_SAMPLING_LOGIC),.O(en_sampling_logic),.reset(0));
+SYNC sync_en_sampling_logic(.clk(WR_CLK),.I(en_SAMPLING_LOGIC),.O(en_sampling_logic),.reset(0));
 
 
 wire read_en;
-SYNC beat_clk(.clk(RD_CLK),.I(READ_EN),.O(read_en),.reset(0));
+SYNC sync_read_en(.clk(RD_CLK),.I(READ_EN),.O(read_en),.reset(0));
 wire full;
-SYNC beat_clk(.clk(RD_CLK),.I(full),.O(FULL),.reset(0));
+SYNC sync_full(.clk(RD_CLK),.I(full),.O(FULL),.reset(0));
 
 
 
 
 // COUNTER LOGIC
-reg [30:0] external_counter;
+reg [31:0] external_counter;
 always @(posedge WR_CLK) begin
     if (en_sampling_logic & (~rst)) external_counter <= external_counter +1;
     else external_counter <=0;
@@ -78,7 +78,7 @@ begin
     if(temp_mem !=  beat_clk && en_sampling_logic) begin
         temp_mem <= beat_clk;
         write_en <= 1;
-        DATA_IN  <={beat_clk,external_counter[30:0]};
+        DATA_IN  <= external_counter[31:0];
     end
     else begin
         write_en <=0;
