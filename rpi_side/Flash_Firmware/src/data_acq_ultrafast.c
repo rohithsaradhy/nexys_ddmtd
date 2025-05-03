@@ -21,24 +21,12 @@ int main(int argc, char** argv)
   bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_64); 
   bcm2835_spi_chipSelect(BCM2835_SPI_CS0);
 
-  //Switch Off Heating...
-  // heating_status(0); //0--> both off; 1--> heat ddmtd1; 2--> head ddmtd2; 
-
   int N;
   if(argc == 2)
     N= atoi(argv[1]); 
   else
     N=1;
 
-
-  // char filename1[100] = "./data/ddmtd1.txt";
-  // char filename2[100] = "./data/ddmtd2.txt";
-
-  // remove(filename1);
-  // remove(filename2);
-
-  // FILE *fp1 = fopen(filename1,"w");
-  // FILE *fp2 = fopen(filename2,"w");
 
   int mem_full=0; 
   int num_of_words = 2*FIFO_DEPTH; 
@@ -49,11 +37,9 @@ int main(int argc, char** argv)
   char*  cmd_buf = malloc(num_Bytes);
   char* total_data_buf =  malloc(N*num_Bytes);
 
-  // printf("Data_Allocated: 2*%f MB \n",((float)(num_Bytes)/1000000));
 
   memset(data_buf, 0xff,num_Bytes );
   memset(cmd_buf, 0xff, num_Bytes );
-// print_nWords(cmd_buf,num_Bytes,2) ; //Test to see if the memory buffer has been initialized.
 
   cmd_buf[0] = ADDR_MEM1 & 0xFF;
   cmd_buf[1] = 0;
@@ -62,10 +48,8 @@ int main(int argc, char** argv)
   int numBytesRead =0; //Number of bytes read
   int i=0;
 
-
-
  
-  // 
+
   // // //Debug Tools...
   // readCounter();
   // readFIFO_readCount();
@@ -94,7 +78,6 @@ int main(int argc, char** argv)
           bcm2835_spi_transfernb(cmd_buf, data_buf, num_Bytes);          
           memcpy(total_data_buf+numBytesRead,data_buf+offset_bytes,num_Bytes-offset_bytes);
           numBytesRead = numBytesRead + num_Bytes - offset_bytes;
-          // memset(data_buf, 0xff,num_Bytes ); //cleaning data
       }
 
       i=i+1;
@@ -102,15 +85,9 @@ int main(int argc, char** argv)
   stopAcq();   
   calcValues(total_data_buf, numBytesRead);
 
-  // fclose(fp1);
-  // fclose(fp2);
-
   free(data_buf);
   free(cmd_buf);
   free(total_data_buf);
-
-
-
 
   end_spi();
   return 0;
@@ -160,3 +137,4 @@ int calcValues(void* virtual_address, int byte_count)
   printf("%5.3f,%5.3f \n ",phase_rise/rise_count,50000-phase_fall/fall_count);
   return 0;
 }
+
