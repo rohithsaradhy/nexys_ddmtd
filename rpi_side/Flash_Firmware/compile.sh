@@ -14,8 +14,13 @@
 # gcc -Iinclude -O src/data_acq.c src/spi_common.c src/NexysDDMTD.c -l bcm2835 -o bin/data_acq.exe
 # echo Done Compiling data_acq
 
-gcc -Iinclude -O src/data_acq_ultrafast.c src/spi_common.c src/NexysDDMTD.c -l bcm2835 -o bin/data_acq.exe
-echo Done Compiling data_acq_ultrafast
+gcc -Iinclude -O src/data_acq_ultrafast_broadcast.c src/spi_common.c src/NexysDDMTD.c -l bcm2835 -o bin/data_acq.exe
+echo Done Compiling data_acq_ultrafast_broadcast
+
+
+
+# gcc -Iinclude -O src/data_acq_ultrafast.c src/spi_common.c src/NexysDDMTD.c -l bcm2835 -o bin/data_acq.exe
+# echo Done Compiling data_acq_ultrafast
 
 gcc -Iinclude -O src/ddmtd_pll.c src/spi_common.c src/NexysDDMTD.c -l bcm2835 -o bin/ddmtd_pll.exe
 echo Done Compiling PLL
