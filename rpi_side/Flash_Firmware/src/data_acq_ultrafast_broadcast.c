@@ -105,7 +105,8 @@ int main(int argc, char** argv)
 
   while(1){
     numBytesRead =0;
-    N_count =0; 
+    N_count =0;
+    i=0; 
     bcm2835_spi_transfernb(cmd_buf, data_buf, num_Bytes); 
     bcm2835_spi_transfernb(cmd_buf, data_buf, num_Bytes); 
     memset(data_buf, 0xff,num_Bytes );
