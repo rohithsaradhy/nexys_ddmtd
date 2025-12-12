@@ -13,7 +13,8 @@
 #pragma pack(push, 1)
 typedef struct {
     long long t;
-    float tie;
+    float tie_rise;
+    float tie_fall;
 } TIEdata;
 #pragma pack(pop)
 
@@ -47,7 +48,7 @@ int main(int argc, char** argv)
   struct sockaddr_in addr;
   memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;
-  addr.sin_port = htons(1234);
+  addr.sin_port = htons(1235);
   addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);;
   TIEdata tie_data;
   
@@ -77,6 +78,7 @@ int main(int argc, char** argv)
   char* data_buf = malloc(num_Bytes);
   char*  cmd_buf = malloc(num_Bytes);
   char* total_data_buf =  malloc(N*num_Bytes);
+  memset(total_data_buf, 0xff,N*num_Bytes );
 
   // printf("Data_Allocated: 2*%f MB \n",((float)(num_Bytes)/1000000));
 
@@ -105,11 +107,12 @@ int main(int argc, char** argv)
 
   while(1){
     numBytesRead =0;
-    N_count =0;
-    i=0; 
+    N_count =0; 
+    i=0;
     bcm2835_spi_transfernb(cmd_buf, data_buf, num_Bytes); 
     bcm2835_spi_transfernb(cmd_buf, data_buf, num_Bytes); 
     memset(data_buf, 0xff,num_Bytes );
+    memset(total_data_buf, 0xff,N*num_Bytes );
     startAcq();
     while(i < 100000000)
     {
@@ -171,7 +174,6 @@ int calcValues(void* virtual_address, int byte_count, TIEdata* tie_data)
   int rise_count=0;
   int fall_count=0;
 
-
   for (offset = 0; offset < byte_count-mod_num*word_byte; offset=offset+mod_num*word_byte){
     val1  = (uint)(0xffffffff&(p[0+offset]|p[1+offset]<<8|p[2+offset]<<16|p[3+offset]<<24));
     val1n = (uint)(0xffffffff&(p[0+offset+mod_num*word_byte]|p[1+offset+mod_num*word_byte]<<8|p[2+offset+mod_num*word_byte]<<16|p[3+offset+mod_num*word_byte]<<24));
@@ -189,9 +191,20 @@ int calcValues(void* virtual_address, int byte_count, TIEdata* tie_data)
     }
     i=i+1;
     // printf("%u,%u, \n ",val1n-val1,val2n-val2);
+    // printf("%u,%u, \n ",val1,val2);
+
   }
   // printf("%5.3f,%5.3f \n ",phase_rise/rise_count,50000-phase_fall/fall_count);
  
-  tie_data->tie = ((phase_rise/rise_count) + (50000-phase_fall/fall_count))/2;
+
+  if ((phase_rise/rise_count) < (phase_fall/fall_count)) {
+    tie_data->tie_rise = phase_rise/rise_count;
+    tie_data->tie_fall = phase_fall/fall_count;
+  }
+  else{
+    tie_data->tie_fall = phase_rise/rise_count;
+    tie_data->tie_rise = phase_fall/fall_count;
+  }
+
   return 0;
 }

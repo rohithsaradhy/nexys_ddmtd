@@ -18,7 +18,7 @@ int main() {
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(1234);
+    addr.sin_port = htons(1235);
     addr.sin_addr.s_addr = inet_addr("192.168.22.98/17");;
     // addr.sin_addr.s_addr = htonl(INADDR_ANY); // Listen on all interfaces
 
@@ -28,7 +28,7 @@ int main() {
 
 
     FILE *file_pointer;
-    char *filename = "farside_nexys3.txt";
+    char *filename = "farside_nexys4.txt";
     file_pointer = fopen(filename, "a");
     // Check if the file was opened successfully
     if (file_pointer == NULL) {
